@@ -1,0 +1,81 @@
+#!/bin/bash -e
+
+# ssl-pairgen.sh (a play on ssh-keygen)
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+CFPATH=$SCRIPT_DIR/bin
+
+# Default
+CLIENT_EXPIRE="8760" # hours in a year
+
+if [ $# -ne 2 ]
+then
+    echo "Usage: ssl-pairgen.sh \"<org>\" <username>"
+    exit 1
+fi
+
+CP_O="$1"
+USER_NAME="$2"
+CA_NAME="$USER_NAME-PrivateCA"
+CA_FILE="$USER_NAME-ca"
+
+CA_EXPIRE=$(( $CLIENT_EXPIRE + 1 ))
+
+CA_CSR=$(cat <<EOF
+{
+  "CN": "$CA_NAME",
+  "CA": {"expiry": "${CA_EXPIRE}h", "pathlen": 0},
+  "key": {"algo": "rsa", "size": 2048},
+  "names": [{"O": "$CP_O"}]
+}
+EOF
+)
+
+CLIENT_CSR=$(cat <<EOF
+{
+  "hosts": ["127.0.0.1"],
+  "key": {"algo": "rsa", "size": 2048},
+  "names": [{"O": "$CP_O"}]
+}
+EOF
+)
+
+CC=$(mktemp client-config-XXXXXX.json)
+cat > $CC <<EOF
+{
+  "signing": {
+    "default": {
+      "expiry": "${CLIENT_EXPIRE}h",
+      "usages": ["client auth"]
+    },
+    "profiles": {}
+  }
+}
+EOF
+
+echo "Generating Private CA for $USER_NAME"
+# echo "$CA_CSR" | cat
+
+# Generate $USER_NAME-ca.crt and temporary CA key
+echo "$CA_CSR" | $CFPATH/cfssl gencert \
+  -initca - | $CFPATH/cfssljson -bare $CA_NAME
+rm $CA_NAME.csr
+mv $CA_NAME.pem $CA_FILE.crt
+
+# Generate $USER_NAME.p12
+echo "$CLIENT_CSR" | $CFPATH/cfssl gencert \
+  -cn="$USER_NAME" \
+  -ca="$CA_FILE.crt" \
+  -ca-key="${CA_NAME}-key.pem" \
+  -config=$CC - | $CFPATH/cfssljson -bare $USER_NAME
+
+rm -f $CA_NAME-key.pem ${USER_NAME}.csr $CC
+
+openssl pkcs12 -export -out ${USER_NAME}.p12 \
+  -inkey ${USER_NAME}-key.pem \
+  -in ${USER_NAME}.pem \
+  -certfile $CA_FILE.crt
+
+rm -f ${USER_NAME}-key.pem ${USER_NAME}.pem
+
+echo "Created User CA pair '${CA_FILE}.crt' and '${USER_NAME}.p12'."

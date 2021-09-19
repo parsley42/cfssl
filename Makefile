@@ -29,15 +29,15 @@ serve:
 
 bin/rice: $(shell find vendor -type f -name '*.go')
 	@mkdir -p $(dir $@)
-	go build -o $@ ./vendor/github.com/GeertJohan/go.rice/rice
+	GOOS=linux go build -o $@ ./vendor/github.com/GeertJohan/go.rice/rice
 
 bin/golint: $(shell find vendor -type f -name '*.go')
 	@mkdir -p $(dir $@)
-	go build -o $@ ./vendor/golang.org/x/lint/golint
+	GOOS=linux go build -o $@ ./vendor/golang.org/x/lint/golint
 
 bin/goose: $(shell find vendor -type f -name '*.go')
 	@mkdir -p $(dir $@)
-	go build -o $@ ./vendor/bitbucket.org/liamstask/goose/cmd/goose
+	GOOS=linux go build -o $@ ./vendor/bitbucket.org/liamstask/goose/cmd/goose
 
 .PHONY: clean
 clean:
