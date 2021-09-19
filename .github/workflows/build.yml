@@ -23,7 +23,11 @@ jobs:
           make
       - name: Package Linux
         run: |
-          tar czvf ssl-pairgen-linux.tar.gz README.md LICENSE ssl-pairgen bin/cfssl bin/cfssljson
+          rm -rf package
+          mkdir -p package/ssl-pairgen
+          cp -a --parents README.md LICENSE ssl-pairgen bin/cfssl bin/cfssljson package/ssl-pairgen
+          cd package
+          tar czvf ../ssl-pairgen-linux.tar.gz ssl-pairgen
       - name: Clean Linux
         run: |
           make clean
@@ -32,7 +36,11 @@ jobs:
           GOOS=darwin make
       - name: Package Darwin
         run: |
-          tar czvf ssl-pairgen-darwin.tar.gz README.md LICENSE ssl-pairgen bin/cfssl bin/cfssljson
+          rm -rf package
+          mkdir -p package/ssl-pairgen
+          cp -a --parents README.md LICENSE ssl-pairgen bin/cfssl bin/cfssljson package/ssl-pairgen
+          cd package
+          tar czvf ../ssl-pairgen-darwin.tar.gz ssl-pairgen
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
         # softprops/action-gh-release v0.1.12
