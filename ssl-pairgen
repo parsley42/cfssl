@@ -8,6 +8,12 @@ CFPATH=$SCRIPT_DIR/bin
 # Default
 CLIENT_EXPIRE="8760" # hours in a year
 
+if ! which openssl &>/dev/null
+then
+    echo "Missing openssl; try 'brew install openssl'?"
+    exit 1
+fi
+
 if [ $# -ne 2 ]
 then
     echo "Usage: ssl-pairgen.sh \"<org>\" <username>"
